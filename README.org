@@ -30,11 +30,76 @@ This repository contains my personal Emacs configuration files, featuring a mode
 
 * Installation
 
-Clone this repository to =~/.emacs.d/= or symlink the files to your Emacs configuration directory:
+** Quick Setup
+
+Clone this repository to =~/.emacs.d/= and set up the orgmode files:
 
 #+BEGIN_SRC bash
+# Clone the Emacs configuration
 git clone https://github.com/adamkali/emacs-config.git ~/.emacs.d
+
+# Navigate to the configuration directory
+cd ~/.emacs.d
+
+# Install and sync the orgmode files repository
+make install    # Clones the orgmode repository to ~/orgmode
+make sync-all   # Syncs both repositories
 #+END_SRC
+
+** Manual Setup
+
+If you prefer to set up manually:
+
+#+BEGIN_SRC bash
+# Clone Emacs config
+git clone https://github.com/adamkali/emacs-config.git ~/.emacs.d
+
+# Clone orgmode files separately
+git clone https://github.com/adamkali/orgmode-files.git ~/orgmode
+#+END_SRC
+
+** Repository Synchronization
+
+Use the Makefile commands to keep repositories synchronized across machines:
+
+#+BEGIN_SRC bash
+cd ~/.emacs.d
+
+# Available commands:
+make help           # Show all available commands
+make status         # Check git status of both repositories
+make sync-orgmode   # Pull latest orgmode files and push changes
+make sync-all       # Sync both emacs config and orgmode repositories
+make pull-orgmode   # Pull latest orgmode files only
+make push-orgmode   # Push local orgmode changes only
+make clean          # Clean temporary and backup files
+#+END_SRC
+
+** Orgmode Directory Setup
+
+The orgmode directory (=~/orgmode=) contains:
+
+- =keybindings.org= - Detailed keybindings documentation
+- =todos.org= - Personal task management
+- =projects.org= - Project notes and tracking  
+- =notes.org= - General notes and documentation
+- =inbox.org= - Quick capture inbox
+- =roam/= - Org-roam knowledge management files
+
+*** Using the Makefile
+
+The Makefile provides automated synchronization between your local files and GitHub:
+
+#+BEGIN_EXAMPLE
+# On a new machine:
+cd ~/.emacs.d && make install && make sync-all
+
+# Daily workflow:
+cd ~/.emacs.d && make sync-all  # Before and after work
+
+# Check what's changed:
+cd ~/.emacs.d && make status
+#+END_EXAMPLE
 
 * Keybindings
 
