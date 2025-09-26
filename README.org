@@ -1,0 +1,53 @@
+#+TITLE: My Emacs Configuration
+#+AUTHOR: adamkali
+#+EMAIL: 
+#+DATE: 2025-09-26
+#+DESCRIPTION: Personal Emacs configuration with keybindings
+#+KEYWORDS: emacs, configuration, dotfiles
+#+LANGUAGE: en
+#+OPTIONS: toc:2 num:nil
+
+* Overview
+
+This repository contains my personal Emacs configuration files, featuring a modern setup with evil mode, LSP support, and various productivity enhancements.
+
+* Features
+
+- **Evil Mode**: Vim-like modal editing
+- **LSP Integration**: Language server protocol support for multiple languages
+- **Modern UI**: Doom modeline, centaur tabs, and dashboard
+- **Project Management**: Projectile integration
+- **Version Control**: Magit and evil-collection
+- **Completion**: Company mode with multiple backends
+- **Debugging**: DAP mode for debugging support
+
+* Files Structure
+
+- =init.el= - Main configuration file
+- =themes/= - Custom themes directory
+- =elpa/= - Package installations
+- =.gitignore= - Git ignore patterns for cache files
+
+* Installation
+
+Clone this repository to =~/.emacs.d/= or symlink the files to your Emacs configuration directory:
+
+#+BEGIN_SRC bash
+git clone https://github.com/adamkali/emacs-config.git ~/.emacs.d
+#+END_SRC
+
+* Keybindings
+
+The following keybindings are automatically extracted from the configuration:
+
+<!-- KEYBINDINGS_START -->
+<!-- This section will be automatically updated by GitHub Actions -->
+<!-- KEYBINDINGS_END -->
+
+* Dependencies
+
+This configuration requires Emacs 27.1 or later. Packages are automatically installed via the built-in package manager.
+
+* License
+
+This configuration is available under the MIT License.

@@ -1,0 +1,199 @@
+name: Update Keybindings
+
+on:
+  push:
+    branches: [ master, main ]
+    paths: 
+      - 'init.el'
+      - '*.el'
+  schedule:
+    - cron: '0 0 * * 0'  # Weekly on Sunday
+  workflow_dispatch:
+
+jobs:
+  update-keybindings:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Setup Emacs
+      uses: purcell/setup-emacs@master
+      with:
+        version: 29.1
+    
+    - name: Extract keybindings
+      run: |
+        # Create a script to extract keybindings from init.el
+        cat > extract_keybindings.el << 'EOF'
+        (require 'package)
+        (setq package-user-dir (expand-file-name "elpa" default-directory))
+        (package-initialize)
+        
+        ;; Load the configuration to get all keybindings
+        (condition-case err
+            (load-file "init.el")
+          (error (message "Error loading init.el: %s" err)))
+        
+        ;; Function to extract custom keybindings
+        (defun extract-custom-keybindings ()
+          "Extract custom keybindings from current Emacs session."
+          (let ((custom-bindings '())
+                (global-map-bindings '()))
+            
+            ;; Extract from global-map
+            (map-keymap
+             (lambda (key binding)
+               (when (and (symbolp binding)
+                         (not (memq binding '(self-insert-command
+                                            digit-argument
+                                            negative-argument
+                                            undefined))))
+                 (let ((key-desc (key-description (vector key))))
+                   (unless (string-match-p "^\\(C-[0-9]\\|M-[0-9]\\)" key-desc)
+                     (push (cons key-desc binding) global-map-bindings)))))
+             global-map)
+            
+            ;; Extract evil-mode bindings if available
+            (when (boundp 'evil-normal-state-map)
+              (map-keymap
+               (lambda (key binding)
+                 (when (symbolp binding)
+                   (let ((key-desc (key-description (vector key))))
+                     (push (cons (format "Evil Normal: %s" key-desc) binding) custom-bindings))))
+               evil-normal-state-map))
+            
+            ;; Extract leader key bindings if available
+            (when (boundp 'evil-leader--default-map)
+              (map-keymap
+               (lambda (key binding)
+                 (when (symbolp binding)
+                   (let ((key-desc (key-description (vector key))))
+                     (push (cons (format "Leader: %s" key-desc) binding) custom-bindings))))
+               evil-leader--default-map))
+            
+            ;; Combine and sort all bindings
+            (append custom-bindings global-map-bindings)))
+        
+        ;; Generate markdown table
+        (defun generate-keybindings-table ()
+          "Generate a markdown table of keybindings."
+          (let ((bindings (extract-custom-keybindings))
+                (output '()))
+            (push "| Keybinding | Command | Description |" output)
+            (push "|------------|---------|-------------|" output)
+            
+            (dolist (binding (sort bindings (lambda (a b) (string< (car a) (car b)))))
+              (let* ((key (car binding))
+                     (command (cdr binding))
+                     (doc (or (documentation command) "No description available")))
+                ;; Truncate long descriptions
+                (when (> (length doc) 80)
+                  (setq doc (concat (substring doc 0 77) "...")))
+                ;; Escape pipe characters in description
+                (setq doc (replace-regexp-in-string "|" "\\|" doc))
+                (push (format "| `%s` | `%s` | %s |" key command doc) output)))
+            
+            (mapconcat 'identity (reverse output) "\n")))
+        
+        ;; Write output to file
+        (with-temp-file "keybindings.md"
+          (insert (generate-keybindings-table)))
+        
+        (message "Keybindings extracted successfully!")
+        EOF
+        
+        # Run the extraction
+        emacs --batch --load extract_keybindings.el --kill || echo "Extraction completed with warnings"
+    
+    - name: Checkout orgmode repository
+      uses: actions/checkout@v4
+      with:
+        repository: adamkali/orgmode-files
+        path: orgmode
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Update README.org with keybindings from orgmode
+      run: |
+        # Extract keybindings from the orgmode repository
+        if [ -f "orgmode/keybindings.org" ]; then
+          echo "Found keybindings.org in orgmode repository"
+          
+          # Convert org-mode keybindings to markdown format for README
+          cat > keybindings_section.txt << 'EOF'
+
+** Keybindings
+
+The following keybindings are sourced from the [[https://github.com/adamkali/orgmode-files/blob/master/keybindings.org][orgmode repository]]:
+
+#+BEGIN_QUOTE
+For the complete and up-to-date keybindings documentation, see the 
+[[https://github.com/adamkali/orgmode-files/blob/master/keybindings.org][keybindings.org]] file in the orgmode repository.
+#+END_QUOTE
+
+** Essential Keybindings
+
+| Key | Mode | Command | Description |
+|-----|------|---------|-------------|
+| ~SPC~ | Normal | Leader key | Access to custom commands |
+| ~SPC f f~ | Normal | Find file | Open file with completion |
+| ~SPC b b~ | Normal | Buffer list | Switch between buffers |
+| ~SPC p p~ | Normal | Project switch | Switch between projects |
+| ~SPC g s~ | Normal | Git status | Open Magit status |
+| ~C-x C-s~ | Any | Save file | Save current buffer |
+| ~C-x C-f~ | Any | Find file | Open file |
+| ~C-x b~ | Any | Switch buffer | Change to another buffer |
+
+** Configuration Files
+
+- Main configuration: [[file:init.el][init.el]]
+- Keybindings documentation: [[https://github.com/adamkali/orgmode-files/blob/master/keybindings.org][keybindings.org]]
+- Project notes: [[https://github.com/adamkali/orgmode-files][orgmode repository]]
+
+EOF
+          
+          # Replace the keybindings section in README.org
+          sed -i '/<!-- KEYBINDINGS_START -->/,/<!-- KEYBINDINGS_END -->/c\
+<!-- KEYBINDINGS_START -->\
+'"$(cat keybindings_section.txt | sed 's/$/\\/')"'\
+<!-- KEYBINDINGS_END -->' README.org
+          
+        else
+          echo "keybindings.org not found in orgmode repository, using default keybindings"
+          
+          # Fallback to default keybindings
+          cat > keybindings_section.txt << 'EOF'
+
+** Keybindings
+
+#+BEGIN_QUOTE
+Keybindings are documented in the separate [[https://github.com/adamkali/orgmode-files][orgmode repository]].
+#+END_QUOTE
+
+EOF
+          
+          sed -i '/<!-- KEYBINDINGS_START -->/,/<!-- KEYBINDINGS_END -->/c\
+<!-- KEYBINDINGS_START -->\
+'"$(cat keybindings_section.txt | sed 's/$/\\/')"'\
+<!-- KEYBINDINGS_END -->' README.org
+        fi
+    
+    - name: Commit and push changes
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        
+        if git diff --quiet; then
+          echo "No changes to commit"
+        else
+          git add README.org
+          git commit -m "Auto-update keybindings documentation
+          
+          🤖 Generated with GitHub Actions
+          
+          Co-Authored-By: GitHub Actions <action@github.com>"
+          git push
+        fi
