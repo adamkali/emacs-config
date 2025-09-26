@@ -1,0 +1,13 @@
+# Ignore cache and temporary files
+.cache/
+auto-save-list/
+eln-cache/
+*.elc
+*~
+.#*
+\#*\#
+tramp
+recentf
+.lsp-session-v1
+projectile-bookmarks.eld
+transient/
