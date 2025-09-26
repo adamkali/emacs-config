@@ -124,36 +124,36 @@ jobs:
           
           # Convert org-mode keybindings to markdown format for README
           cat > keybindings_section.txt << 'EOF'
-
-** Keybindings
-
-The following keybindings are sourced from the [[https://github.com/adamkali/orgmode-files/blob/master/keybindings.org][orgmode repository]]:
-
-#+BEGIN_QUOTE
-For the complete and up-to-date keybindings documentation, see the 
-[[https://github.com/adamkali/orgmode-files/blob/master/keybindings.org][keybindings.org]] file in the orgmode repository.
-#+END_QUOTE
-
-** Essential Keybindings
-
-| Key | Mode | Command | Description |
-|-----|------|---------|-------------|
-| ~SPC~ | Normal | Leader key | Access to custom commands |
-| ~SPC f f~ | Normal | Find file | Open file with completion |
-| ~SPC b b~ | Normal | Buffer list | Switch between buffers |
-| ~SPC p p~ | Normal | Project switch | Switch between projects |
-| ~SPC g s~ | Normal | Git status | Open Magit status |
-| ~C-x C-s~ | Any | Save file | Save current buffer |
-| ~C-x C-f~ | Any | Find file | Open file |
-| ~C-x b~ | Any | Switch buffer | Change to another buffer |
-
-** Configuration Files
-
-- Main configuration: [[file:init.el][init.el]]
-- Keybindings documentation: [[https://github.com/adamkali/orgmode-files/blob/master/keybindings.org][keybindings.org]]
-- Project notes: [[https://github.com/adamkali/orgmode-files][orgmode repository]]
-
-EOF
+        
+        * Keybindings
+        
+        The following keybindings are sourced from the [[https://github.com/adamkali/orgmode-files/blob/master/keybindings.org][orgmode repository]]:
+        
+        #+BEGIN_QUOTE
+        For the complete and up-to-date keybindings documentation, see the 
+        [[https://github.com/adamkali/orgmode-files/blob/master/keybindings.org][keybindings.org]] file in the orgmode repository.
+        #+END_QUOTE
+        
+        * Essential Keybindings
+        
+        | Key | Mode | Command | Description |
+        |-----|------|---------|-------------|
+        | ~SPC~ | Normal | Leader key | Access to custom commands |
+        | ~SPC f f~ | Normal | Find file | Open file with completion |
+        | ~SPC b b~ | Normal | Buffer list | Switch between buffers |
+        | ~SPC p p~ | Normal | Project switch | Switch between projects |
+        | ~SPC g s~ | Normal | Git status | Open Magit status |
+        | ~C-x C-s~ | Any | Save file | Save current buffer |
+        | ~C-x C-f~ | Any | Find file | Open file |
+        | ~C-x b~ | Any | Switch buffer | Change to another buffer |
+        
+        * Configuration Files
+        
+        - Main configuration: [[file:init.el][init.el]]
+        - Keybindings documentation: [[https://github.com/adamkali/orgmode-files/blob/master/keybindings.org][keybindings.org]]
+        - Project notes: [[https://github.com/adamkali/orgmode-files][orgmode repository]]
+        
+        EOF
           
           # Replace the keybindings section in README.org
           sed -i '/<!-- KEYBINDINGS_START -->/,/<!-- KEYBINDINGS_END -->/c\
@@ -166,14 +166,14 @@ EOF
           
           # Fallback to default keybindings
           cat > keybindings_section.txt << 'EOF'
-
-** Keybindings
-
-#+BEGIN_QUOTE
-Keybindings are documented in the separate [[https://github.com/adamkali/orgmode-files][orgmode repository]].
-#+END_QUOTE
-
-EOF
+        
+        * Keybindings
+        
+        #+BEGIN_QUOTE
+        Keybindings are documented in the separate [[https://github.com/adamkali/orgmode-files][orgmode repository]].
+        #+END_QUOTE
+        
+        EOF
           
           sed -i '/<!-- KEYBINDINGS_START -->/,/<!-- KEYBINDINGS_END -->/c\
 <!-- KEYBINDINGS_START -->\
