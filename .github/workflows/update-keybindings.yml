@@ -156,10 +156,13 @@ jobs:
         EOF
           
           # Replace the keybindings section in README.org
-          sed -i '/<!-- KEYBINDINGS_START -->/,/<!-- KEYBINDINGS_END -->/c\
-<!-- KEYBINDINGS_START -->\
-'"$(cat keybindings_section.txt | sed 's/$/\\/')"'\
-<!-- KEYBINDINGS_END -->' README.org
+          {
+            sed -n '1,/<!-- KEYBINDINGS_START -->/p' README.org | head -n -1
+            echo "<!-- KEYBINDINGS_START -->"
+            cat keybindings_section.txt
+            echo "<!-- KEYBINDINGS_END -->"
+            sed -n '/<!-- KEYBINDINGS_END -->/,$p' README.org | tail -n +2
+          } > README_tmp.org && mv README_tmp.org README.org
           
         else
           echo "keybindings.org not found in orgmode repository, using default keybindings"
@@ -175,10 +178,13 @@ jobs:
         
         EOF
           
-          sed -i '/<!-- KEYBINDINGS_START -->/,/<!-- KEYBINDINGS_END -->/c\
-<!-- KEYBINDINGS_START -->\
-'"$(cat keybindings_section.txt | sed 's/$/\\/')"'\
-<!-- KEYBINDINGS_END -->' README.org
+          {
+            sed -n '1,/<!-- KEYBINDINGS_START -->/p' README.org | head -n -1
+            echo "<!-- KEYBINDINGS_START -->"
+            cat keybindings_section.txt
+            echo "<!-- KEYBINDINGS_END -->"
+            sed -n '/<!-- KEYBINDINGS_END -->/,$p' README.org | tail -n +2
+          } > README_tmp.org && mv README_tmp.org README.org
         fi
     
     - name: Commit and push changes
