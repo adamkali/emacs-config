@@ -31,17 +31,17 @@
   ;; Set default font
   (set-face-attribute 'default nil
                       :font "VictorMono Nerd Font Propo"
-                      :height 120)
+                      :height 140)
   ;; Set fixed-pitch font (for code)
   (set-face-attribute 'fixed-pitch nil
                       :font "VictorMono Nerd Font Propo"
-                      :height 120)
+                      :height 160)
   ;; Set variable-pitch font (for text)
   (set-face-attribute 'variable-pitch nil
                       :font "VictorMono Nerd Font Propo"
-                      :height 120)
+                      :height 180)
   ;; Ensure font is applied to frames
-  (add-to-list 'default-frame-alist '(font . "VictorMono Nerd Font Propo-12")))
+  (add-to-list 'default-frame-alist '(font . "VictorMono Nerd Font Propo-16")))
 
 ;; All-the-icons package
 (use-package all-the-icons
@@ -571,6 +571,200 @@
   :config
   (helm-projectile-on))
 
+;; 💻 TERMINAL INTEGRATION 💻
+;; Modern terminal emulation with vterm and multi-terminal support
+
+;; VTerm - High-performance terminal emulator
+(use-package vterm
+  :ensure t
+  :config
+  ;; Performance and behavior settings
+  (setq vterm-max-scrollback 10000)
+  (setq vterm-buffer-name-string "vterm %s")
+  (setq vterm-kill-buffer-on-exit t)
+  (setq vterm-clear-scrollback-when-clearing t)
+  
+  ;; Integration settings
+  (setq vterm-copy-exclude-prompt t)
+  (setq vterm-use-vterm-prompt-detection-method t)
+  
+  ;; Evil mode integration
+  (evil-define-key 'insert vterm-mode-map (kbd "C-c") #'vterm--self-insert)
+  (evil-define-key 'insert vterm-mode-map (kbd "C-d") #'vterm--self-insert)
+  (evil-define-key 'insert vterm-mode-map (kbd "C-z") #'vterm--self-insert)
+  (evil-define-key 'normal vterm-mode-map (kbd "C-c") #'vterm-send-C-c)
+  (evil-define-key 'normal vterm-mode-map (kbd "C-d") #'vterm-send-C-d)
+  
+  ;; Custom vterm functions for better integration
+  (defun vterm-other-window ()
+    "Open vterm in other window."
+    (interactive)
+    (let ((current-window (selected-window)))
+      (if (one-window-p)
+          (split-window-right))
+      (other-window 1)
+      (vterm)
+      (select-window current-window)))
+  
+  ;; Directory tracking
+  (add-hook 'vterm-mode-hook
+            (lambda ()
+              (setq-local evil-insert-state-cursor 'box)
+              (evil-insert-state))))
+
+;; Multi-VTerm - Multiple terminal management
+(use-package multi-vterm
+  :ensure t
+  :after vterm
+  :config
+  ;; Buffer naming
+  (setq multi-vterm-buffer-name "terminal")
+  (setq multi-vterm-dedicated-window-height-percent 30)
+  
+  ;; Dedicated terminal settings
+  (setq multi-vterm-dedicated-select-after-open-p t)
+  (setq multi-vterm-dedicated-close-on-exit t)
+  
+  ;; Custom functions for better workflow
+  (defun multi-vterm-project ()
+    "Create or switch to a vterm buffer for the current project."
+    (interactive)
+    (let ((project-name (projectile-project-name)))
+      (if project-name
+          (let ((buffer-name (format "vterm-%s" project-name)))
+            (if (get-buffer buffer-name)
+                (switch-to-buffer buffer-name)
+              (multi-vterm)
+              (rename-buffer buffer-name)))
+        (multi-vterm))))
+  
+  (defun multi-vterm-here ()
+    "Open vterm in current directory."
+    (interactive)
+    (let ((default-directory (if (buffer-file-name)
+                                 (file-name-directory (buffer-file-name))
+                               default-directory)))
+      (multi-vterm))))
+
+;; VTerm Toggle - Quick terminal toggle
+(use-package vterm-toggle
+  :ensure t
+  :after vterm
+  :config
+  ;; Toggle settings
+  (setq vterm-toggle-fullscreen-p nil)
+  (setq vterm-toggle-scope 'project)
+  (setq vterm-toggle-reset-window-configration-after-exit t)
+  
+  ;; Window management
+  (setq vterm-toggle-cd-auto-create-buffer t)
+  (setq vterm-toggle-use-dedicated-buffer t)
+  
+  ;; Key mappings for quick access
+  (global-set-key (kbd "C-`") #'vterm-toggle)
+  (global-set-key (kbd "C-~") #'vterm-toggle-cd)
+  
+  ;; Custom toggle functions
+  (defun vterm-toggle-split-below ()
+    "Open vterm in split below."
+    (interactive)
+    (let ((vterm-toggle-fullscreen-p nil))
+      (vterm-toggle)
+      (when (get-buffer-window vterm-toggle--buffer-name)
+        (with-selected-window (get-buffer-window vterm-toggle--buffer-name)
+          (delete-other-windows-vertically)))))
+  
+  (defun vterm-toggle-split-right ()
+    "Open vterm in split right."
+    (interactive)
+    (let ((vterm-toggle-fullscreen-p nil))
+      (split-window-right)
+      (other-window 1)
+      (vterm-toggle))))
+
+;; EShell enhancements for when you prefer elisp-based shell
+(use-package eshell
+  :ensure nil ; built-in
+  :config
+  ;; EShell prompt customization
+  (setq eshell-prompt-function
+        (lambda ()
+          (concat
+           (propertize (format "%s" (eshell/pwd)) 'face '(:foreground "#8864f5"))
+           (propertize " λ " 'face '(:foreground "#fc853f" :weight bold)))))
+  
+  (setq eshell-prompt-regexp "^[^λ]* λ ")
+  (setq eshell-highlight-prompt nil)
+  
+  ;; History settings
+  (setq eshell-history-size 1000)
+  (setq eshell-save-history-on-exit t)
+  (setq eshell-hist-ignoredups t)
+  
+  ;; Visual commands (run in term instead of eshell)
+  (add-to-list 'eshell-visual-commands "htop")
+  (add-to-list 'eshell-visual-commands "top")
+  (add-to-list 'eshell-visual-commands "vim")
+  (add-to-list 'eshell-visual-commands "nvim")
+  (add-to-list 'eshell-visual-commands "ssh")
+  (add-to-list 'eshell-visual-commands "tail")
+  (add-to-list 'eshell-visual-commands "less")
+  
+  ;; Aliases for common commands
+  (defun eshell/clear ()
+    "Clear the eshell buffer."
+    (eshell/cd)
+    (let ((inhibit-read-only t))
+      (erase-buffer)
+      (eshell-send-input)))
+  
+  (defun eshell/ff (&rest args)
+    "Use helm-find-files from eshell."
+    (helm-find-files (car args)))
+  
+  ;; Git integration
+  (defun eshell/g (&rest args)
+    "Wrapper around git command with magit integration."
+    (cond
+     ((equal args '("status")) (magit-status))
+     ((equal args '("log")) (magit-log-current))
+     (t (apply #'eshell-exec-visual (cons "git" args))))))
+
+;; Eat - Another modern terminal emulator option
+(use-package eat
+  :ensure t
+  :config
+  ;; Integration with project
+  (setq eat-kill-buffer-on-exit t)
+  (setq eat-enable-yank-to-terminal t)
+  
+  ;; Custom eat function for project-aware terminals
+  (defun eat-project ()
+    "Start eat terminal in project root."
+    (interactive)
+    (let ((default-directory (projectile-project-root)))
+      (eat))))
+
+;; Terminal integration with projectile
+(defun terminal-here ()
+  "Open terminal in current directory or project root."
+  (interactive)
+  (let ((dir (if (and (bound-and-true-p projectile-mode)
+                      (projectile-project-p))
+                 (projectile-project-root)
+               default-directory)))
+    (let ((default-directory dir))
+      (call-interactively #'vterm))))
+
+;; Shell completion enhancement
+(use-package shell-pop
+  :ensure t
+  :config
+  (setq shell-pop-shell-type '("vterm" "*vterm*" (lambda () (vterm))))
+  (setq shell-pop-window-size 30)
+  (setq shell-pop-full-span t)
+  (setq shell-pop-window-position "bottom"))
+
 ;; Leader key bindings (Space-based like Doom/Spacemacs)
 (my/leader-keys
   "SPC" 'helm-M-x                    ; Space Space = command palette
@@ -739,7 +933,22 @@
   "mrt" 'rust-test                  ; Space m r t = rust testables  
   "mra" 'rust-run                   ; Space m r a = rust run
   "mrc" 'rust-check                 ; Space m r c = rust check
-  "mrC" 'rust-clippy)               ; Space m r C = rust clippy
+  "mrC" 'rust-clippy                ; Space m r C = rust clippy
+  
+  ;; Terminal operations (Space `)
+  "`" '(:ignore t :which-key "terminal")
+  "``" 'vterm                       ; Space ` ` = open vterm
+  "`v" 'vterm                       ; Space ` v = vertical terminal
+  "`h" 'vterm-other-window          ; Space ` h = horizontal terminal
+  "`t" 'multi-vterm                 ; Space ` t = multi-terminal
+  "`n" 'multi-vterm-next            ; Space ` n = next terminal
+  "`p" 'multi-vterm-prev            ; Space ` p = previous terminal
+  "`d" 'multi-vterm-dedicated-toggle ; Space ` d = dedicated terminal
+  "`r" 'vterm-rename-buffer         ; Space ` r = rename terminal
+  "`k" 'kill-buffer                 ; Space ` k = kill terminal
+  "`c" 'term                        ; Space ` c = classic term
+  "`e" 'eshell                      ; Space ` e = eshell
+  "`s" 'shell)                      ; Space ` s = shell
 
 ;; Load custom themes
 (add-to-list 'custom-theme-load-path "~/.emacs.d/themes/")
