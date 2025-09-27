@@ -9,6 +9,12 @@ on:
   schedule:
     - cron: '0 0 * * 0'  # Weekly on Sunday
   workflow_dispatch:
+    inputs:
+      sync_all:
+        description: 'Run as part of sync-all process'
+        required: false
+        default: 'false'
+        type: boolean
 
 permissions:
   contents: write

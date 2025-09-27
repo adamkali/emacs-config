@@ -615,7 +615,7 @@
 ;; Multi-VTerm - Multiple terminal management
 (use-package multi-vterm
   :ensure t
-  :after vterm
+  :after (vterm projectile)
   :config
   ;; Buffer naming
   (setq multi-vterm-buffer-name "terminal")
@@ -702,6 +702,10 @@
   (setq eshell-hist-ignoredups t)
   
   ;; Visual commands (run in term instead of eshell)
+  ;; Make sure eshell-visual-commands is initialized
+  (require 'em-term)
+  (unless (boundp 'eshell-visual-commands)
+    (setq eshell-visual-commands '()))
   (add-to-list 'eshell-visual-commands "htop")
   (add-to-list 'eshell-visual-commands "top")
   (add-to-list 'eshell-visual-commands "vim")
@@ -731,19 +735,31 @@
      (t (apply #'eshell-exec-visual (cons "git" args))))))
 
 ;; Eat - Another modern terminal emulator option
-(use-package eat
-  :ensure t
-  :config
-  ;; Integration with project
-  (setq eat-kill-buffer-on-exit t)
-  (setq eat-enable-yank-to-terminal t)
-  
-  ;; Custom eat function for project-aware terminals
-  (defun eat-project ()
-    "Start eat terminal in project root."
-    (interactive)
-    (let ((default-directory (projectile-project-root)))
-      (eat))))
+;; NOTE: eat package is not available in MELPA, using vterm instead
+;; If you want to install eat manually, clone from: https://codeberg.org/akib/emacs-eat
+;; (use-package eat
+;;   :ensure t
+;;   :config
+;;   ;; Integration with project
+;;   (setq eat-kill-buffer-on-exit t)
+;;   (setq eat-enable-yank-to-terminal t)
+;;   
+;;   ;; Custom eat function for project-aware terminals
+;;   (defun eat-project ()
+;;     "Start eat terminal in project root."
+;;     (interactive)
+;;     (let ((default-directory (projectile-project-root)))
+;;       (eat))))
+
+;; Alternative: Use vterm for project terminals
+(defun vterm-project ()
+  "Start vterm terminal in project root."
+  (interactive)
+  (let ((default-directory (if (and (bound-and-true-p projectile-mode)
+                                    (projectile-project-p))
+                               (projectile-project-root)
+                             default-directory)))
+    (vterm)))
 
 ;; Terminal integration with projectile
 (defun terminal-here ()
@@ -759,7 +775,9 @@
 ;; Shell completion enhancement
 (use-package shell-pop
   :ensure t
+  :after vterm
   :config
+  ;; Suppress defvaralias warning by ensuring proper load order
   (setq shell-pop-shell-type '("vterm" "*vterm*" (lambda () (vterm))))
   (setq shell-pop-window-size 30)
   (setq shell-pop-full-span t)
@@ -950,6 +968,105 @@
   "`e" 'eshell                      ; Space ` e = eshell
   "`s" 'shell)                      ; Space ` s = shell
 
+;; Make integration functions for intuitive Makefile running
+(defun emacs-make-sync ()
+  "Run make sync - complete synchronization with remote and keybindings update."
+  (interactive)
+  (let ((default-directory "~/.emacs.d"))
+    (async-shell-command "make sync" "*Make Sync*")))
+
+(defun emacs-make-status ()
+  "Run make status - show repository status."
+  (interactive)
+  (let ((default-directory "~/.emacs.d"))
+    (async-shell-command "make status" "*Make Status*")))
+
+(defun emacs-make-sync-all ()
+  "Run make sync-all - local synchronization only."
+  (interactive)
+  (let ((default-directory "~/.emacs.d"))
+    (async-shell-command "make sync-all" "*Make Sync All*")))
+
+(defun emacs-make-sync-remote ()
+  "Run make sync-all-remote - trigger GitHub Actions sync."
+  (interactive)
+  (let ((default-directory "~/.emacs.d"))
+    (async-shell-command "make sync-all-remote" "*Make Sync Remote*")))
+
+(defun emacs-make-clean ()
+  "Run make clean - clean temporary files."
+  (interactive)
+  (let ((default-directory "~/.emacs.d"))
+    (async-shell-command "make clean" "*Make Clean*")))
+
+(defun emacs-make-interactive ()
+  "Run make interactive - show interactive menu."
+  (interactive)
+  (let ((default-directory "~/.emacs.d"))
+    (async-shell-command "make interactive" "*Make Interactive*")))
+
+(defun emacs-make-menu ()
+  "Show make targets in a buffer with clickable options."
+  (interactive)
+  (with-current-buffer (get-buffer-create "*Emacs Make Menu*")
+    (erase-buffer)
+    (insert "🔧 Emacs Configuration Management\n")
+    (insert "==================================\n\n")
+    (insert "Click on any command below or use the keybindings:\n\n")
+    
+    (insert-text-button "📋 make sync" 
+                        'action (lambda (_) (emacs-make-sync))
+                        'help-echo "Complete sync: local + remote + keybindings")
+    (insert " - Complete synchronization (Space m s)\n")
+    
+    (insert-text-button "📊 make status"
+                        'action (lambda (_) (emacs-make-status))
+                        'help-echo "Show repository status")
+    (insert " - Check repository status (Space m t)\n")
+    
+    (insert-text-button "🏠 make sync-all"
+                        'action (lambda (_) (emacs-make-sync-all))
+                        'help-echo "Local sync only")
+    (insert " - Local sync only (Space m a)\n")
+    
+    (insert-text-button "☁️ make sync-all-remote"
+                        'action (lambda (_) (emacs-make-sync-remote))
+                        'help-echo "Remote GitHub Actions sync")
+    (insert " - Remote sync + keybindings (Space m r)\n")
+    
+    (insert-text-button "🧹 make clean"
+                        'action (lambda (_) (emacs-make-clean))
+                        'help-echo "Clean temporary files")
+    (insert " - Clean temporary files (Space m c)\n")
+    
+    (insert-text-button "🎯 make interactive"
+                        'action (lambda (_) (emacs-make-interactive))
+                        'help-echo "Interactive command selection")
+    (insert " - Interactive menu (Space m i)\n\n")
+    
+    (insert "💡 Tip: Use Space m m to show this menu anytime!\n")
+    (insert "💡 Tip: All commands run asynchronously in background buffers.\n")
+    
+    (special-mode)
+    (goto-char (point-min))
+    (pop-to-buffer (current-buffer))))
+
+;; Add make commands to general keybindings
+(general-define-key
+ :states '(normal visual insert emacs)
+ :prefix "SPC"
+ :non-normal-prefix "C-SPC"
+ 
+ ;; Make operations (Space m)
+ "m" '(:ignore t :which-key "make")
+ "mm" 'emacs-make-menu              ; Space m m = make menu
+ "ms" 'emacs-make-sync              ; Space m s = make sync
+ "mt" 'emacs-make-status            ; Space m t = make status  
+ "ma" 'emacs-make-sync-all          ; Space m a = make sync-all
+ "mr" 'emacs-make-sync-remote       ; Space m r = make sync-all-remote
+ "mc" 'emacs-make-clean             ; Space m c = make clean
+ "mi" 'emacs-make-interactive)      ; Space m i = make interactive
+
 ;; Load custom themes
 (add-to-list 'custom-theme-load-path "~/.emacs.d/themes/")
 
@@ -976,4 +1093,8 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- )
+ '(org-level-1 ((t (:inherit outline-1 :height 1.5))))
+ '(org-level-2 ((t (:inherit outline-2 :height 1.3))))
+ '(org-level-3 ((t (:inherit outline-3 :height 1.2))))
+ '(org-level-4 ((t (:inherit outline-4 :height 1.1))))
+ '(org-level-5 ((t (:inherit outline-5 :height 1.0)))))

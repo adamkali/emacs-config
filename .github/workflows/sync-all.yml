@@ -1,0 +1,100 @@
+name: Sync All Repositories
+
+on:
+  workflow_dispatch:
+    inputs:
+      update_keybindings:
+        description: 'Update keybindings documentation'
+        required: false
+        default: 'true'
+        type: boolean
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  sync-all:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Setup Git
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+    
+    - name: Sync orgmode repository
+      run: |
+        # Clone or update orgmode repository
+        ORGMODE_DIR="$HOME/orgmode"
+        ORGMODE_REPO="https://github.com/adamkali/orgmode-files.git"
+        
+        if [ ! -d "$ORGMODE_DIR/.git" ]; then
+          echo "Cloning orgmode repository..."
+          git clone $ORGMODE_REPO $ORGMODE_DIR
+        else
+          echo "Orgmode repository already exists"
+        fi
+        
+        echo "Pulling latest orgmode files..."
+        cd $ORGMODE_DIR
+        git fetch origin
+        if [ -n "$(git status --porcelain)" ]; then
+          echo "Local changes detected. Stashing before pull..."
+          git stash push -m "Auto-stash before pull $(date)"
+          git pull origin master
+          echo "Applying stashed changes..."
+          git stash pop || echo "No stash to apply or conflicts"
+        else
+          git pull origin master
+        fi
+        
+        echo "Pushing any local orgmode changes..."
+        if [ -n "$(git status --porcelain)" ]; then
+          git add .
+          git commit -m "Update org files - $(date '+%Y-%m-%d %H:%M:%S')
+
+🤖 Auto-commit from GitHub Actions sync-all
+
+Co-Authored-By: GitHub Actions <action@github.com>"
+          git push origin master
+        else
+          echo "No orgmode changes to push"
+        fi
+    
+    - name: Push emacs config changes
+      run: |
+        echo "Pushing emacs config changes..."
+        if [ -n "$(git status --porcelain)" ]; then
+          git add .
+          git commit -m "Update emacs configuration - $(date '+%Y-%m-%d %H:%M:%S')
+
+🤖 Auto-commit from GitHub Actions sync-all
+
+Co-Authored-By: GitHub Actions <action@github.com>"
+          git push origin master
+        else
+          echo "No emacs config changes to push"
+        fi
+    
+    - name: Trigger keybindings update
+      if: ${{ github.event.inputs.update_keybindings == 'true' }}
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const response = await github.rest.actions.createWorkflowDispatch({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            workflow_id: 'update-keybindings.yml',
+            ref: 'master',
+            inputs: {
+              sync_all: 'true'
+            }
+          });
+          console.log('Triggered keybindings update workflow');
